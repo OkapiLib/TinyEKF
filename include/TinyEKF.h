@@ -18,6 +18,10 @@
  */
 
 #include <stdlib.h>
+
+#define Nsta 2
+#define Mobs 3
+
 #include "tiny_ekf_struct.h"
 
 void ekf_init(void *, int, int);

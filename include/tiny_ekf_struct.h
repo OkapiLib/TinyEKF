@@ -20,9 +20,6 @@
  * along with this code.  If not, see <http:#www.gnu.org/licenses/>.
  */
 
-#define Nsta 3
-#define Mobs 3
-
 typedef struct {
     int n;          /* number of state values */
     int m;          /* number of observables */

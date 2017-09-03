@@ -12,6 +12,20 @@
 
 #include "main.h"
 
+extern "C" {
+  void __libc_init_array();
+  void __cxa_pure_virtual() { exit(1111); }
+  int _getpid() { return -1;}
+  int _kill(int pid, int sig) { return -1; }
+  void _sbrk() {}
+  void __dso_handle() {}
+}
+
+namespace std {
+  void __throw_length_error(char const*) { exit(1112); }
+  void __throw_bad_alloc() { exit(1113); }
+}
+
 /*
  * Runs pre-initialization code. This function will be started in kernel mode one time while the
  * VEX Cortex is starting up. As the scheduler is still paused, most API functions will fail.
@@ -21,6 +35,8 @@
  * configure a UART port (usartOpen()) but cannot set up an LCD (lcdInit()).
  */
 void initializeIO() {
+  __libc_init_array();
+  lcdInit(uart1);
 }
 
 /*
