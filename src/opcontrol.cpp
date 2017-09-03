@@ -51,12 +51,20 @@ Fuser ekf;
 
 void operatorControl() {
 	float z[3] = {0};
+	unsigned long start = millis();
+	int iter =0 ;
 
 	while (1) {
 		z[0] = 0;
 		z[1] = 0;
 		z[2] = 0;
 		ekf.step(z);
+		iter++;
+		if (iter == 20) {
+			printf("time for 20 loops: %d\n", millis() - start);
+			iter = 0;
+			start = millis();
+		}
 
 		delay(15);
 	}
