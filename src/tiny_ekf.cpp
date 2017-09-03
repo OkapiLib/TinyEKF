@@ -19,20 +19,20 @@
 
 #include <math.h>
 #include <stdlib.h>
-#include <stdio.h>
+#include "tiny_ekf.h"
 
 /* Cholesky-decomposition matrix-inversion code, adapated from
    http://jean-pierre.moreau.pagesperso-orange.fr/Cplus/choles_cpp.txt */
 
-static int choldc1(double * a, double * p, int n) {
+static int choldc1(float *a, float *p, const int n) {
     int i,j,k;
-    double sum;
+    float sum;
 
     for (i = 0; i < n; i++) {
         for (j = i; j < n; j++) {
-            sum = a[i*n+j];
+            sum = a[i * n + j];
             for (k = i - 1; k >= 0; k--) {
-                sum -= a[i*n+k] * a[j*n+k];
+                sum -= a[i * n + k] * a[j * n + k];
             }
             if (i == j) {
                 if (sum <= 0) {
@@ -41,7 +41,7 @@ static int choldc1(double * a, double * p, int n) {
                 p[i] = sqrt(sum);
             }
             else {
-                a[j*n+i] = sum / p[i];
+                a[j * n + i] = sum / p[i];
             }
         }
     }
@@ -49,21 +49,24 @@ static int choldc1(double * a, double * p, int n) {
     return 0; /* success */
 }
 
-static int choldcsl(double * A, double * a, double * p, int n) 
-{
-    int i,j,k; double sum;
-    for (i = 0; i < n; i++) 
-        for (j = 0; j < n; j++) 
-            a[i*n+j] = A[i*n+j];
-    if (choldc1(a, p, n)) return 1;
+static int choldcsl(float * A, float * a, float * p, int n) {
+    int i,j,k;
+    float sum;
+
+    for (i = 0; i < n; i++)
+        for (j = 0; j < n; j++)
+            a[i * n + j] = A[i * n + j];
+    if (choldc1(a, p, n))
+      return 1;
+
     for (i = 0; i < n; i++) {
-        a[i*n+i] = 1 / p[i];
+        a[i * n + i] = 1 / p[i];
         for (j = i + 1; j < n; j++) {
             sum = 0;
             for (k = i; k < j; k++) {
-                sum -= a[j*n+k] * a[k*n+i];
+                sum -= a[j * n + k] * a[k * n + i];
             }
-            a[j*n+i] = sum / p[j];
+            a[j * n + i] = sum / p[j];
         }
     }
 
@@ -71,218 +74,185 @@ static int choldcsl(double * A, double * a, double * p, int n)
 }
 
 
-static int cholsl(double * A, double * a, double * p, int n) 
-{
+static int cholsl(float *A, float *a, float *p, const int n) {
     int i,j,k;
-    if (choldcsl(A,a,p,n)) return 1;
+
+    if (choldcsl(A,a,p,n))
+      return 1;
+
     for (i = 0; i < n; i++) {
         for (j = i + 1; j < n; j++) {
-            a[i*n+j] = 0.0;
+            a[i * n + j] = 0.0;
         }
     }
+
     for (i = 0; i < n; i++) {
         a[i*n+i] *= a[i*n+i];
         for (k = i + 1; k < n; k++) {
-            a[i*n+i] += a[k*n+i] * a[k*n+i];
+            a[i * n + i] += a[k * n + i] * a[k * n + i];
         }
         for (j = i + 1; j < n; j++) {
             for (k = j; k < n; k++) {
-                a[i*n+j] += a[k*n+i] * a[k*n+j];
+                a[i * n + j] += a[k * n + i] * a[k * n + j];
             }
         }
     }
+
     for (i = 0; i < n; i++) {
         for (j = 0; j < i; j++) {
-            a[i*n+j] = a[j*n+i];
+            a[i * n + j] = a[j * n + i];
         }
     }
 
     return 0; /* success */
 }
 
-static void zeros(double * a, int m, int n)
-{
+static void zeros(float *a, const int m, const int n) {
     int j;
-    for (j=0; j<m*n; ++j)
+    for (j = 0; j < m * n; ++j)
         a[j] = 0;
 }
 
-#ifdef DEBUG
-static void dump(double * a, int m, int n, const char * fmt)
-{
-    int i,j;
-
-    char f[100];
-    sprintf(f, "%s ", fmt);
-    for(i=0; i<m; ++i) {
-        for(j=0; j<n; ++j)
-            printf(f, a[i*n+j]);
-        printf("\n");
-    }
-}
-#endif
-
 /* C <- A * B */
-static void mulmat(double * a, double * b, double * c, int arows, int acols, int bcols)
-{
+static void mulmat(const float *a, const float *b, float *c, const int arows, const int acols, const int bcols) {
     int i, j,l;
-
-    for(i=0; i<arows; ++i)
-        for(j=0; j<bcols; ++j) {
-            c[i*bcols+j] = 0;
-            for(l=0; l<acols; ++l)
-                c[i*bcols+j] += a[i*acols+l] * b[l*bcols+j];
+    for (i = 0; i < arows; ++i)
+        for (j = 0; j < bcols; ++j) {
+            c[i * bcols + j] = 0;
+            for (l = 0; l < acols; ++l)
+                c[i * bcols + j] += a[i * acols + l] * b[l * bcols + j];
         }
 }
 
-static void mulvec(double * a, double * x, double * y, int m, int n)
-{
+static void mulvec(const float *a, const float *x, float *y, const int m, const int n) {
     int i, j;
-
-    for(i=0; i<m; ++i) {
+    for (i = 0; i < m; ++i) {
         y[i] = 0;
-        for(j=0; j<n; ++j)
-            y[i] += x[j] * a[i*n+j];
+        for (j = 0; j < n; ++j)
+            y[i] += x[j] * a[i * n + j];
     }
 }
 
-static void transpose(double * a, double * at, int m, int n)
-{
+static void transpose(float *a, float *at, const int m, const int n) {
     int i,j;
-
-    for(i=0; i<m; ++i)
-        for(j=0; j<n; ++j) {
-            at[j*m+i] = a[i*n+j];
+    for (i = 0; i < m; ++i)
+        for (j = 0; j < n; ++j) {
+            at[j * m + i] = a[i * n + j];
         }
 }
 
 /* A <- A + B */
-static void accum(double * a, double * b, int m, int n)
-{        
+static void accum(float *a, const float *b, const int m, const int n) {
     int i,j;
-
-    for(i=0; i<m; ++i)
-        for(j=0; j<n; ++j)
-            a[i*n+j] += b[i*n+j];
+    for (i = 0; i < m; ++i)
+        for (j = 0; j < n; ++j)
+            a[i * n + j] += b[i * n + j];
 }
 
 /* C <- A + B */
-static void add(double * a, double * b, double * c, int n)
-{
+static void add(const float *a, const float *b, float *c, const int n) {
     int j;
-
-    for(j=0; j<n; ++j)
+    for (j = 0; j < n; ++j)
         c[j] = a[j] + b[j];
 }
 
 
 /* C <- A - B */
-static void sub(double * a, double * b, double * c, int n)
-{
+static void sub(float *a, float *b, float *c, const int n) {
     int j;
-
-    for(j=0; j<n; ++j)
+    for (j = 0; j < n; ++j)
         c[j] = a[j] - b[j];
 }
 
-static void negate(double * a, int m, int n)
-{        
+static void negate(float *a, const int m, const int n) {
     int i, j;
-
-    for(i=0; i<m; ++i)
-        for(j=0; j<n; ++j)
-            a[i*n+j] = -a[i*n+j];
+    for (i = 0; i < m; ++i)
+        for (j = 0; j < n; ++j)
+            a[i * n + j] = -a[i * n + j];
 }
 
-static void mat_addeye(double * a, int n)
-{
-    int i;
-    for (i=0; i<n; ++i)
-        a[i*n+i] += 1;
+static void mat_addeye(float *a, const int n) {
+  int i;
+    for (i = 0; i < n; ++i)
+        a[i * n + i] += 1;
 }
 
 /* TinyEKF code ------------------------------------------------------------------- */
 
-#include "tiny_ekf.h"
-
 typedef struct {
+    float *x;    /* state vector */
 
-    double * x;    /* state vector */
+    float *P;  /* prediction error covariance */
+    float *Q;  /* process noise covariance */
+    float *R;  /* measurement error covariance */
 
-    double * P;  /* prediction error covariance */
-    double * Q;  /* process noise covariance */
-    double * R;  /* measurement error covariance */
+    float *G;  /* Kalman gain; a.k.a. K */
 
-    double * G;  /* Kalman gain; a.k.a. K */
+    float *F;  /* Jacobian of process model */
+    float *H;  /* Jacobian of measurement model */
 
-    double * F;  /* Jacobian of process model */
-    double * H;  /* Jacobian of measurement model */
+    float *Ht; /* transpose of measurement Jacobian */
+    float *Ft; /* transpose of process Jacobian */
+    float *Pp; /* P, post-prediction, pre-update */
 
-    double * Ht; /* transpose of measurement Jacobian */
-    double * Ft; /* transpose of process Jacobian */
-    double * Pp; /* P, post-prediction, pre-update */
-
-    double * fx;  /* output of user defined f() state-transition function */
-    double * hx;  /* output of user defined h() measurement function */
+    float *fx;  /* output of user defined f() state-transition function */
+    float *hx;  /* output of user defined h() measurement function */
 
     /* temporary storage */
-    double * tmp0;
-    double * tmp1;
-    double * tmp2;
-    double * tmp3;
-    double * tmp4;
-    double * tmp5; 
-
+    float *tmp0;
+    float *tmp1;
+    float *tmp2;
+    float *tmp3;
+    float *tmp4;
+    float *tmp5;
 } ekf_t;
 
-static void unpack(void * v, ekf_t * ekf, int n, int m)
-{
+static void unpack(void *v, ekf_t *ekf, const int n, const int m) {
     /* skip over n, m in data structure */
-    char * cptr = (char *)v;
-    cptr += 2*sizeof(int);
+    char *cptr = (char*)v;
+    cptr += 2 * sizeof(int);
 
-    double * dptr = (double *)cptr;
+    float *dptr = (float*)cptr;
     ekf->x = dptr;
     dptr += n;
     ekf->P = dptr;
-    dptr += n*n;
+    dptr += n * n;
     ekf->Q = dptr;
-    dptr += n*n;
+    dptr += n * n;
     ekf->R = dptr;
-    dptr += m*m;
+    dptr += m * m;
     ekf->G = dptr;
-    dptr += n*m;
+    dptr += n * m;
     ekf->F = dptr;
-    dptr += n*n;
+    dptr += n * n;
     ekf->H = dptr;
-    dptr += m*n;
+    dptr += m * n;
     ekf->Ht = dptr;
-    dptr += n*m;
+    dptr += n * m;
     ekf->Ft = dptr;
-    dptr += n*n;
+    dptr += n * n;
     ekf->Pp = dptr;
-    dptr += n*n;
+    dptr += n * n;
     ekf->fx = dptr;
     dptr += n;
     ekf->hx = dptr;
     dptr += m;
     ekf->tmp0 = dptr;
-    dptr += n*n;
+    dptr += n * n;
     ekf->tmp1 = dptr;
-    dptr += n*m;
+    dptr += n * m;
     ekf->tmp2 = dptr;
-    dptr += m*n;
+    dptr += m * n;
     ekf->tmp3 = dptr;
-    dptr += m*m;
+    dptr += m * m;
     ekf->tmp4 = dptr;
-    dptr += m*m;
+    dptr += m * m;
     ekf->tmp5 = dptr;
   }
 
-void ekf_init(void * v, int n, int m)
-{
+void ekf_init(void *v, const int n, const int m) {
     /* retrieve n, m and set them in incoming data structure */
-    int * ptr = (int *)v;
+    int *ptr = (int*)v;
     *ptr = n;
     ptr++;
     *ptr = m;
@@ -300,18 +270,16 @@ void ekf_init(void * v, int n, int m)
     zeros(ekf.H, m, n);
 }
 
-int ekf_step(void * v, double * z)
-{        
+int ekf_step(void *v, float *z) {
     /* unpack incoming structure */
-
-    int * ptr = (int *)v;
+    int *ptr = (int*)v;
     int n = *ptr;
     ptr++;
     int m = *ptr;
 
     ekf_t ekf;
-    unpack(v, &ekf, n, m); 
- 
+    unpack(v, &ekf, n, m);
+
     /* P_k = F_{k-1} P_{k-1} F^T_{k-1} + Q_{k-1} */
     mulmat(ekf.F, ekf.P, ekf.tmp0, n, n, n);
     transpose(ekf.F, ekf.Ft, n, n);
@@ -324,7 +292,8 @@ int ekf_step(void * v, double * z)
     mulmat(ekf.H, ekf.Pp, ekf.tmp2, m, n, n);
     mulmat(ekf.tmp2, ekf.Ht, ekf.tmp3, m, n, m);
     accum(ekf.tmp3, ekf.R, m, m);
-    if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m)) return 1;
+    if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m))
+      return 1;
     mulmat(ekf.tmp1, ekf.tmp4, ekf.G, n, m, m);
 
     /* \hat{x}_k = \hat{x_k} + G_k(z_k - h(\hat{x}_k)) */

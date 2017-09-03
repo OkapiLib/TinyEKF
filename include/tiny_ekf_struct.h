@@ -20,35 +20,36 @@
  * along with this code.  If not, see <http:#www.gnu.org/licenses/>.
  */
 
-typedef struct {
+#define Nsta 3
+#define Mobs 3
 
+typedef struct {
     int n;          /* number of state values */
     int m;          /* number of observables */
 
-    double x[Nsta];    /* state vector */
+    float x[Nsta];    /* state vector */
 
-    double P[Nsta][Nsta];  /* prediction error covariance */
-    double Q[Nsta][Nsta];  /* process noise covariance */
-    double R[Mobs][Mobs];  /* measurement error covariance */
+    float P[Nsta][Nsta];  /* prediction error covariance */
+    float Q[Nsta][Nsta];  /* process noise covariance */
+    float R[Mobs][Mobs];  /* measurement error covariance */
 
-    double G[Nsta][Mobs];  /* Kalman gain; a.k.a. K */
+    float G[Nsta][Mobs];  /* Kalman gain; a.k.a. K */
 
-    double F[Nsta][Nsta];  /* Jacobian of process model */
-    double H[Mobs][Nsta];  /* Jacobian of measurement model */
+    float F[Nsta][Nsta];  /* Jacobian of process model */
+    float H[Mobs][Nsta];  /* Jacobian of measurement model */
 
-    double Ht[Nsta][Mobs]; /* transpose of measurement Jacobian */
-    double Ft[Nsta][Nsta]; /* transpose of process Jacobian */
-    double Pp[Nsta][Nsta]; /* P, post-prediction, pre-update */
+    float Ht[Nsta][Mobs]; /* transpose of measurement Jacobian */
+    float Ft[Nsta][Nsta]; /* transpose of process Jacobian */
+    float Pp[Nsta][Nsta]; /* P, post-prediction, pre-update */
 
-    double fx[Nsta];   /* output of user defined f() state-transition function */
-    double hx[Mobs];   /* output of user defined h() measurement function */
+    float fx[Nsta];   /* output of user defined f() state-transition function */
+    float hx[Mobs];   /* output of user defined h() measurement function */
 
     /* temporary storage */
-    double tmp0[Nsta][Nsta];
-    double tmp1[Nsta][Mobs];
-    double tmp2[Mobs][Nsta];
-    double tmp3[Mobs][Mobs];
-    double tmp4[Mobs][Mobs];
-    double tmp5[Mobs]; 
-
-} ekf_t;        
+    float tmp0[Nsta][Nsta];
+    float tmp1[Nsta][Mobs];
+    float tmp2[Mobs][Nsta];
+    float tmp3[Mobs][Mobs];
+    float tmp4[Mobs][Mobs];
+    float tmp5[Mobs];
+} ekf_t;
