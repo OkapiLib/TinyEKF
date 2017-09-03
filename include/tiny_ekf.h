@@ -66,4 +66,4 @@ void ekf_init(void * ekf, int n, int m);
   * @param z array of measurement (observation) values
   * @return 0 on success, 1 on failure caused by non-positive-definite matrix.
   */
-int ekf_step(void * ekf, float * z);
+bool ekf_step(void * ekf, float * z);

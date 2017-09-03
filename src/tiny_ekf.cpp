@@ -270,7 +270,7 @@ void ekf_init(void *v, const int n, const int m) {
     zeros(ekf.H, m, n);
 }
 
-int ekf_step(void *v, float *z) {
+bool ekf_step(void *v, float *z) {
     /* unpack incoming structure */
     int *ptr = (int*)v;
     int n = *ptr;
@@ -293,7 +293,7 @@ int ekf_step(void *v, float *z) {
     mulmat(ekf.tmp2, ekf.Ht, ekf.tmp3, m, n, m);
     accum(ekf.tmp3, ekf.R, m, m);
     if (cholsl(ekf.tmp3, ekf.tmp4, ekf.tmp5, m))
-      return 1;
+      return false;
     mulmat(ekf.tmp1, ekf.tmp4, ekf.G, n, m, m);
 
     /* \hat{x}_k = \hat{x_k} + G_k(z_k - h(\hat{x}_k)) */
@@ -308,5 +308,5 @@ int ekf_step(void *v, float *z) {
     mulmat(ekf.tmp0, ekf.Pp, ekf.P, n, n, n);
 
     /* success */
-    return 0;
+    return true;
 }

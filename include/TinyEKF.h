@@ -25,7 +25,7 @@
 #include "tiny_ekf_struct.h"
 
 void ekf_init(void *, int, int);
-int ekf_step(void *, float *);
+bool ekf_step(void *, float *);
 
 /**
  * A header-only class for the Extended Kalman Filter.  Your implementing class should #define the constant N and
@@ -118,6 +118,6 @@ class TinyEKF {
          */
         bool step(float *z) {
             this->model(this->ekf.fx, this->ekf.F, this->ekf.hx, this->ekf.H);
-            return ekf_step(&this->ekf, z) ? false : true;
+            return ekf_step(&this->ekf, z);
         }
 };
