@@ -19,7 +19,7 @@
 
 #include <stdlib.h>
 
-#define Nsta 2
+#define Nsta 3
 #define Mobs 3
 
 #include "tiny_ekf_struct.h"
@@ -69,6 +69,7 @@ class TinyEKF {
          * @param j column index
          * @param value value to set
          */
+        __attribute__((always_inline))
         void setP(const int i, const int j, const float value) {
             this->ekf.P[i][j] = value;
         }
@@ -79,6 +80,7 @@ class TinyEKF {
          * @param j column index
          * @param value value to set
          */
+        __attribute__((always_inline))
         void setQ(const int i, const int j, const float value) {
             this->ekf.Q[i][j] = value;
         }
@@ -89,6 +91,7 @@ class TinyEKF {
          * @param j column index
          * @param value value to set
          */
+        __attribute__((always_inline))
         void setR(const int i, const int j, const float value) {
             this->ekf.R[i][j] = value;
         }
@@ -98,6 +101,7 @@ class TinyEKF {
          * @param i the index (at least 0 and less than <i>n</i>
          * @return state value at index
          */
+        __attribute__((always_inline))
         float getX(const int i) {
             return this->ekf.x[i];
         }
@@ -107,6 +111,7 @@ class TinyEKF {
          * @param i the index (at least 0 and less than <i>n</i>
          * @param value value to set
          */
+        __attribute__((always_inline))
         void setX(const int i, const float value) {
             this->ekf.x[i] = value;
         }

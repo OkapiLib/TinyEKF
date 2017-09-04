@@ -30,10 +30,12 @@ class Fuser : public TinyEKF {
             // Process model is f(x) = x
             fx[0] = this->x[0];
             fx[1] = this->x[1];
+						fx[2] = this->x[2];
 
             // So process model Jacobian is identity matrix
             F[0][0] = 1;
             F[1][1] = 1;
+						F[2][2] = 1;
 
             // Measurement function
             hx[0] = this->x[0]; // Barometric pressure from previous state
